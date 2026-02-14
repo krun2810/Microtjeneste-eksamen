@@ -112,11 +112,4 @@ services:
       - gateway
 
 volumes:
-      - PORT=3005
-      - RABBITMQ_URI=amqp://user:password@rabbitmq:5672
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-
-volumes:
   mongo-data:
