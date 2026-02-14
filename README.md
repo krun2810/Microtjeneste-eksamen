@@ -34,10 +34,16 @@ The system consists of the following microservices:
     ```
 
 3.  The system will start. Wait for the `rabbitmq` and `mongodb` services to be healthy.
+4.  **(Optional) Seed Data**: Run the following command to add dummy parking spots:
+    ```bash
+    node seed_data.js
+    ```
+5.  Open the **Frontend Dashboard** in your browser at: `http://localhost:3000`
 
 ## API Endpoints
 
 All endpoints are accessible via the Gateway at `http://localhost:8080`.
+The Frontend at `http://localhost:3000` uses these endpoints automatically.
 
 -   **Get all spots**: `GET /api/spots`
 -   **Get a spot**: `GET /api/spots/:id`

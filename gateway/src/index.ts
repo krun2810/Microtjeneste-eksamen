@@ -26,6 +26,9 @@ app.use('/api/spots', proxy(PARKING_SPOT_SERVICE_URL, {
   }
 }));
 
+// Frontend route (optional proxy, or just CORS support for separate frontend)
+// Since we have a dedicated frontend service on port 3000, we just need CORS (already enabled).
+
 app.use('/api/reservations', proxy(RESERVATION_SERVICE_URL, {
   proxyReqPathResolver: (req) => {
     return '/reservations' + req.url;

@@ -104,5 +104,19 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+
+volumes:
+      - PORT=3005
+      - RABBITMQ_URI=amqp://user:password@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   mongo-data:

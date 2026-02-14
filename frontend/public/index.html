@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 20px; }
+        .spot-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; text-align: center; }
+        .spot-card.free { background-color: #e6fffa; border-color: #38b2ac; }
+        .spot-card.occupied { background-color: #fff5f5; border-color: #e53e3e; }
+        .spot-status { font-weight: bold; margin-top: 5px; }
+        .btn { padding: 5px 10px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+        .sensor-btn { margin-top: 5px; font-size: 0.8em; background: #718096; }
+    </style>
+</head>
+<body>
+    <h1>🚗 Smart Parking System</h1>
+    
+    <div id="booking-section">
+        <h3>Book a Spot</h3>
+        <select id="user-select">
+            <option value="user1">User 1</option>
+            <option value="user2">User 2</option>
+        </select>
+        <button class="btn" onclick="fetchSpots()">Refresh Spots</button>
+    </div>
+
+    <div id="spots-container" class="spot-grid">
+        Loading spots...
+    </div>
+
+    <h3>Recent Reservations</h3>
+    <ul id="reservations-list"></ul>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api'; // Direct from browser to Gateway
+
+        async function fetchSpots() {
+            try {
+                const res = await fetch(`${API_URL}/spots`);
+                const spots = await res.json();
+                renderSpots(spots);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('spots-container').innerText = 'Error loading spots. Is Gateway running?';
+            }
+        }
+
+        function renderSpots(spots) {
+            const container = document.getElementById('spots-container');
+            container.innerHTML = '';
+            
+            if (spots.length === 0) {
+                container.innerHTML = '<p>No spots found. Create some via API first!</p>';
+                return;
+            }
+
+            spots.forEach(spot => {
+                const div = document.createElement('div');
+                div.className = `spot-card ${spot.isOccupied ? 'occupied' : 'free'}`;
+                // Gateway proxy routes /api/sensor/occupied -> Sensor service /events/occupied
+                div.innerHTML = `
+                    <h3>${spot.location}</h3>
+                    <div class="spot-status">${spot.isOccupied ? 'Occupied 🔴' : 'Free 🟢'}</div>
+                    <p>$${spot.pricePerHour}/hr</p>
+                    <button class="btn" onclick="reserve('${spot._id}')" ${spot.isOccupied ? 'disabled' : ''}>
+                        ${spot.isOccupied ? 'Unavailable' : 'Reserve'}
+                    </button>
+                    ${!spot.isOccupied ? `<button class="btn sensor-btn" onclick="simulateSensor('${spot._id}', 'occupied')">🚗 Park (Simulate)</button>` : ''}
+                    ${spot.isOccupied ? `<button class="btn sensor-btn" onclick="simulateSensor('${spot._id}', 'freed')">💨 Leave (Simulate)</button>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function reserve(spotId) {
+            const userId = document.getElementById('user-select').value;
+            // Reservation logic...
+            const startTime = new Date();
+            const endTime = new Date(startTime.getTime() + 60*60*1000); // 1 hour later
+
+            try {
+                const res = await fetch(`${API_URL}/reservations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spotId, userId, startTime: startTime.toISOString(), endTime: endTime.toISOString() })
+                });
+                
+                if (res.ok) {
+                    alert('Reservation successful!');
+                    fetchSpots();
+                    fetchReservations();
+                } else {
+                    alert('Failed to reserve: ' + await res.text());
+                }
+            } catch (err) {
+                alert('Error reserving spot');
+            }
+        }
+
+        async function simulateSensor(spotId, action) {
+            try {
+                await fetch(`${API_URL}/sensor/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ spotId })
+                });
+                // Optimistic UI update or wait for polling
+                setTimeout(fetchSpots, 500); 
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchReservations() {
+            try {
+                const res = await fetch(`${API_URL}/reservations`);
+                const data = await res.json();
+                const list = document.getElementById('reservations-list');
+                list.innerHTML = data.map(r => `<li>Spot ${r.spotId} reserved by ${r.userId} (${r.status})</li>`).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Initial Load
+        fetchSpots();
+        fetchReservations();
+        
+        // Auto-refresh every 5 seconds (primitive real-time)
+        setInterval(fetchSpots, 5000);
+    </script>
+</body>
+</html>
