@@ -55,6 +55,7 @@ The Frontend at `http://localhost:3000` uses these endpoints automatically.
 -   **Simulate Sensor Freed**: `POST /api/sensor/freed` (Body: `{ "spotId": "..." }`)
 
 ## Architecture Diagram
+![alt text](image.png)
 
 [Client] -> [API Gateway]
               |
